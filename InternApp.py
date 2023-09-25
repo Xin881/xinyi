@@ -320,19 +320,9 @@ def update_company_status(com_email):
         cursor.close()
         return redirect(url_for('viewCompanyInfo'))
 
-
-# Function to fetch student data for editing
-def get_student_data(stud_id):
-    cursor = db_conn.cursor()
-    cursor.execute(f"SELECT * FROM student WHERE stud_id = {stud_id}")
-    student_data = cursor.fetchone()
-    cursor.close()
-    return student_data
-
-
-
-@app.route("/studProfile/", methods=['GET', 'POST'])
-def GetStudInfo():
+@app.route("/studProfile/<stud_email>", methods=['GET', 'POST'])
+def GetStudInfo(stud_email):
+    stud_email = stud_email
     username = session.get('username')
 
     if username:
@@ -342,8 +332,10 @@ def GetStudInfo():
         cursor.execute(statement, (username,))
         student_data = cursor.fetchone()
         cursor.close()
-    
-        return render_template('studProfile.html', student=student_data)
+        
+        resume = "https://" + bucket + ".s3.amazonaws.com/stud-id-" + stud_email + "_pdf.pdf"
+        
+        return render_template('studProfile.html', student=student_data, resume=resume)
 
     return "Student not found"
 
@@ -363,9 +355,18 @@ def EditStudProfile(stud_email):
             student_data = cursor.fetchone()
             cursor.close()
             resume = "https://" + bucket + ".s3.amazonaws.com/stud-id-" + stud_email + "_pdf.pdf"
+
+            #if results: 
+                #stud_id, stud_name, stud_gender, stud_IC, stud_email, stud_HP, stud_currAddress, stud_homeAddress, stud_programme, stud_cgpa, stud_resume, stud_cgpa = student_data
+                #resume = "https://" + bucket + ".s3.amazonaws.com/stud-id-" + studEmail + "_pdf.pdf"
+                #return render_template('comp_displayStudResume.html', student=student_data, resume=resume)
+                
+            #else: 
+                #return "Invalid student."
             
             return render_template('stud_editStudProfile.html', student=student_data)
     
+
         elif request.method == 'POST':
             # Retrieve form data
             stud_id = request.form['stud_id']
@@ -420,8 +421,10 @@ def EditStudProfile(stud_email):
                 except Exception as e:
                     return str(e)
 
+
+
             flash("Student profile updated successfully", "success")
-            return redirect('/studProfile/')
+            return redirect('/studProfile/<stud_email>')
     
     return "Student not found"
 
