@@ -54,7 +54,8 @@ def compHomePage():
 
 @app.route("/studHomePage", methods=['GET', 'POST'])
 def studHomePage():
-    return render_template('stud_home.html')
+    username = session.get('username')
+    return render_template('stud_home.html', email=username)
 
 @app.route("/studRegisterPage", methods=['GET', 'POST'])
 def studRegisterPage():
