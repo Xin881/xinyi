@@ -363,18 +363,9 @@ def EditStudProfile(stud_email):
             student_data = cursor.fetchone()
             cursor.close()
             resume = "https://" + bucket + ".s3.amazonaws.com/stud-id-" + stud_email + "_pdf.pdf"
-
-            #if results: 
-                #stud_id, stud_name, stud_gender, stud_IC, stud_email, stud_HP, stud_currAddress, stud_homeAddress, stud_programme, stud_cgpa, stud_resume, stud_cgpa = student_data
-                #resume = "https://" + bucket + ".s3.amazonaws.com/stud-id-" + studEmail + "_pdf.pdf"
-                #return render_template('comp_displayStudResume.html', student=student_data, resume=resume)
-                
-            #else: 
-                #return "Invalid student."
             
-            return render_template('editStudProfile.html', student=student_data)
+            return render_template('stud_editStudProfile.html', student=student_data)
     
-
         elif request.method == 'POST':
             # Retrieve form data
             stud_id = request.form['stud_id']
@@ -389,16 +380,20 @@ def EditStudProfile(stud_email):
             stud_image_file = request.files['stud_image_file']
 
             # Update the database with the new data
+            update_sql = f"UPDATE student SET stud_id = %s, stud_name = %s, stud_programme = %s, " \
+                         f"stud_HP = %s, stud_IC = %s, stud_gender = %s, stud_currAddress = %s, " \
+                         f"stud_homeAddress = %s WHERE stud_email = %s"
+            
             cursor = db_conn.cursor()
-            cursor.execute(f"UPDATE student SET stud_id = '{stud_id}',stud_name = '{stud_name}', stud_programme = '{stud_programme}', "
-                        f"stud_HP = '{stud_HP}', stud_IC = '{stud_ic}', "
-                        f"stud_gender = '{stud_gender}', stud_currAddress = '{stud_currAddress}', "
-                        f"stud_homeAddress = '{stud_homeAddress}' WHERE stud_email = {stud_email}")
+
+            cursor.execute(update_sql, (stud_id, stud_name, stud_programme, stud_HP, stud_ic,
+                                        stud_gender, stud_currAddress, stud_homeAddress, stud_email))
+
             db_conn.commit()
             cursor.close()
 
             # Check if a new resume file is provided
-            if stud_resume.filename != "":
+            if stud_image_file.filename != "":
                 s3 = boto3.resource('s3')
                 stud_image_file_name_in_s3 = "stud-id-" + str(stud_email) + "_pdf.pdf"
 
@@ -414,25 +409,19 @@ def EditStudProfile(stud_email):
                         s3_location = '-' + s3_location
 
                     object_url = f"https://{custombucket}.s3.amazonaws.com/{stud_image_file_name_in_s3}"
-
-                    # object_url = "https://s3{0}.amazonaws.com/{1}/{2}".format(
-                    #     s3_location,
-                    #     custombucket,
-                    #     stud_resume_name_in_s3)
                     
                     # Update the stud_resume field in the database
                     cursor = db_conn.cursor()
-                    cursor.execute(f"UPDATE student SET stud_resume = '{object_url}' WHERE stud_email = {stud_email}")
+                    update_image = f"UPDATE student SET stud_resume = %s WHERE stud_email = %s"
+                    cursor.execute(update_image, ( object_url, stud_email))
                     db_conn.commit()
                     cursor.close()
 
                 except Exception as e:
                     return str(e)
 
-
-
             flash("Student profile updated successfully", "success")
-            return redirect(url_for('GetStudInfo', stud_email=stud_email, object_url=object_url))
+            return redirect('/studProfile/')
     
     return "Student not found"
 
